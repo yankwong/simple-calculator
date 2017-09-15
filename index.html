@@ -59,14 +59,12 @@
 
         <!-- Result Panel -->
         <div class="col-lg-6">
-        <div class="panel panel-default">
+            <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">Result</h3>
                 </div>
                 <div class="panel-body">
-                    <h1 id="first-number"></h1>
-                    <h1 id="operator"></h1>
-                    <h1 id="second-number"></h1>
+                    <h1 id="todo"></h1>
                     <hr>
                     <h1 id="result"></h1>
                 </div>
@@ -77,93 +75,153 @@
 
 <script type="text/javascript">
 
-$(document).ready(function(){
+    $(function() {
 
-    var numArr      = [],
-        numArr2     = [],
-        operator    = '',
-        concatNumArr = function(arr) {
-            if (!arr.length) {
-                return 0;
+        var
+        operators   = [],
+        operands    = [],
+        doPower = function (arr) { // array in the format of ['num', '^', 'num']
+            if (arr.length === 3) {
+                return Math.pow(arr[0], arr[2]);
+            }
+            return Math.pow(arr[0], doPower(arr.slice(2)));
+        },
+        doAllPower = function() {
+            for (var i = operators.length-1; i >=0; i--) {
+                if (operators[i] === '^') {
+                    // grab the proper operands, do math
+                    var newLeftOperand = Math.pow(operands[i], operands[i+1]);
+
+                    // remove right operand
+                    operands.splice(i+1, 1);
+
+                    //update left operand
+                    operands[i] = newLeftOperand;
+                }
+            }
+        },
+        doTimesDivides = function() {
+            for (var i = 0; i < operators.length; i++) {
+                if (operators[i] === '*' || operators[i] === '/' ) {
+                    var newLeftOperand;
+
+                    // grab the proper operands, do math
+                    if (operators[i] === '*') {
+                        newLeftOperand = operands[i] * operands[i+1];
+                    }
+                    else {
+                        newLeftOperand = operands[i] / operands[i+1];
+                    }
+
+                    // remove right operand
+                    operands.splice(i+1, 1);
+
+                    //update left operand
+                    operands[i] = newLeftOperand;
+                }
+            }
+        },
+        doPlusMinus = function() {
+            for (var i = 0; i < operators.length; i++) {
+                if (operators[i] === '+' || operators[i] === '-' ) {
+                    var newLeftOperand;
+
+                    // grab the proper operands, do math
+                    if (operators[i] === '+') {
+                        newLeftOperand = operands[i] + operands[i+1];
+                    }
+                    else {
+                        newLeftOperand = operands[i] - operands[i+1];
+                    }
+
+                    // remove right operand
+                    operands.splice(i+1, 1);
+
+                    //update left operand
+                    operands[i] = newLeftOperand;
+                }
+            }
+        },
+        updateOperators = function(optToRemove) {
+            var newOperators = [];
+
+            for (var i=0; i < operators.length; i++) {
+                if (operators[i] !== optToRemove) {
+                    newOperators.push(operators[i]);
+                }
+            }
+            operators = newOperators;
+        },
+        updatePanel = function(appendVal) {
+            var $todoPanel = $('#todo'),
+                currentHTML = $todoPanel.html();
+
+            $todoPanel.html(currentHTML + appendVal);
+        },
+        clearPanel = function() {
+           $('#todo').html('');
+        },
+        putResult = function(value) {
+            if (typeof value !== 'undefined') {
+                $('#result').html(value);
             }
             else {
-                return parseInt(arr.join(''));
+                $('#result').html(operands.join(''));
             }
         },
-        doCalculation = function(operator) {
-            var leftNum     = concatNumArr(numArr),
-                rightNum    = concatNumArr(numArr2),
-                returnValue = 0;
-
-            if (operator == 'power') {
-                returnValue = Math.pow(leftNum, rightNum);
+        translateOperator = function(optName) {
+            if (optName == 'plus') {
+                return '+';
             }
-            else if (operator == 'plus') {
-                returnValue = leftNum + rightNum;
+            if (optName == 'minus') {
+                return '-';
             }
-            else if (operator == 'minus') {
-                returnValue = leftNum - rightNum;
+            if (optName == 'power') {
+                return '^';
             }
-            else if (operator == 'times') {
-                returnValue = leftNum * rightNum;
+            if (optName == 'times') {
+                return '*';
             }
-            else if (operator == 'divide') {
-                returnValue = Math.floor(leftNum / rightNum);
+            if (optName == 'divide') {
+                return '/';
             }
-            else { // equal
-                returnValue = leftNum;
-            }
-
-            numArr  = [];
-            numArr2 = [];
-            operator = '';
-            return returnValue;
-        },
-        updateNumArr = function(newVal) {
-            numArr = (newVal + '').split('');
-        }
-        printResult = function(num) {
-           $('#result').html(num); 
         };
 
-    // setup click event for number buttons
-    $('.btn.number').on('click', function() {
-        var btnValue = $(this).attr('value');
-        if (operator != '') {
-            numArr2.push(btnValue);
-        }
-        else {
-            numArr.push(btnValue);    
-        }
+        $('.btn.number').on('click', function() {
+            var value = parseInt($(this).attr('value'));
+            operands.push(value);
+            updatePanel(value);
+        });
+
+        $('.btn.operator').on('click', function() {
+            var opt = translateOperator($(this).attr('value'));
+            operators.push(opt);
+            updatePanel(' ' + opt + ' ');
+        });
+
+        $('.btn.equal').on('click', function() {
+            console.log('before', operators, operands);
+            doAllPower();
+            updateOperators('^');
+            console.log('after', operators, operands);
+            doTimesDivides();
+            updateOperators('*');
+            updateOperators('/');
+            console.log('after', operators, operands);
+            doPlusMinus();
+            updateOperators('+');
+            updateOperators('-');
+            console.log('after', operators, operands);
+            putResult();
+        });
+
+        $('.btn.clear').on('click', function() {
+            operands    = [];
+            operators   = [];
+            putResult('');
+            clearPanel();
+        });
     });
-
-    // setup click event for operator buttons
-    $('.btn.operator').on('click', function() {
-        var resultNum = concatNumArr(numArr);
-
-        operator = $(this).attr('value');
-
-        // if both array are not empty, do calculation
-        if (numArr.length && numArr2.length) {
-            resultNum = doCalculation(operator);
-            updateNumArr(resultNum);
-        }
-
-        printResult(resultNum);
-    });
-     
-     // setup click event for equal buttons
-    $('.btn.equal').on('click', function() {
-        var resultNum = concatNumArr(numArr);
-
-        if (numArr.length && numArr2.length) {
-            resultNum = doCalculation(operator);
-            updateNumArr(resultNum);
-        }
-
-        printResult(resultNum);
-    });
-});
 
 </script>
 
