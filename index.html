@@ -77,7 +77,7 @@
 
     $(function() {
 
-        var
+        var buffer  = [],
         operators   = [],
         operands    = [],
         doPower = function (arr) { // array in the format of ['num', '^', 'num']
@@ -185,21 +185,30 @@
             if (optName == 'divide') {
                 return '/';
             }
+        },
+        popBuffer = function() {
+            operands.push(parseInt(buffer.join('')));
+            console.log('operands', operands);
+            buffer = [];
         };
 
         $('.btn.number').on('click', function() {
             var value = parseInt($(this).attr('value'));
-            operands.push(value);
+            buffer.push(value);
+            console.log('hey', buffer);
+            // operands.push(value);
             updatePanel(value);
         });
 
         $('.btn.operator').on('click', function() {
             var opt = translateOperator($(this).attr('value'));
+            popBuffer(); // push buffer to operands, then clean up buffer
             operators.push(opt);
             updatePanel(' ' + opt + ' ');
         });
 
         $('.btn.equal').on('click', function() {
+            popBuffer(); // push buffer to operands, then clean up buffer
             console.log('before', operators, operands);
             doAllPower();
             updateOperators('^');
